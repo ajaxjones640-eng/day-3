@@ -82,21 +82,22 @@ tab_browse, tab_add, tab_circulation = st.tabs(
 # ===================================================================
 with tab_browse:
     st.subheader("Filter & Search Catalog")
+    f_col1, f_col2 = st.columns([1, 2])
+    with f_col1:
+        genres = ["Todos os Gêneros"] + summary.get("unique_genres", [])
+        selected_genre = st.selectbox("Filtrar por Gênero", options=genres)
+    with f_col2:
+        search_query = st.text_input("Buscar por Autor ou Título", placeholder="Digite termos de busca...")
 
-    # 1. Create filter controls using st.columns([1, 2]):
-    #    - Left column: st.selectbox("Filter by Genre", ["All Genres"] + ...)
-    #    - Right column: st.text_input("Search by Author or Title")
-    #
-    # 2. Filter the `books` list using your backend functions:
-    #    - find_books_by_genre(books, selected_genre)
-    #    - Substring search on title/author
-    #
-    # 3. Convert the list of dicts to a pandas DataFrame:
-    #    df = pd.DataFrame(...)
-    #    st.dataframe(df, use_container_width=True, hide_index=True)
+    filtered = books
+    if selected_genre != "Todos os Gêneros":
+        filtered = find_books_by_genre(filtered, selected_genre)
+    if search_query.strip():
+        q = search_query.strip().lower()
+        filtered = [b for b in filtered if q in b.get("title", "").lower() or q in b.get("author", "").lower()]
 
-    st.info("👉 Complete TODO 2 in app.py to display the searchable book catalog.")
-
+    df = pd.DataFrame(filtered)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
 # ===================================================================
 # TODO 3: Register New Book with Form (Lab Step 5)
@@ -121,25 +122,22 @@ with tab_add:
     st.info("👉 Complete TODO 3 in app.py to implement book registration.")
 
 
-avail = [b for b in books if b.get("is_available")]
-opts = {f"#{b['id']}: {b['title']}": b["id"] for b in avail}
-chosen = st.selectbox("Livro:", list(opts.keys()))
-borrower = st.text_input("Nome do Aluno:")
+# ===================================================================
+# TODO 4: Circulation Desk (Check Out & Return) (Lab Step 6)
+# ===================================================================
+with tab_circulation:
+    st.subheader("Circulation Operations")
 
-if st.button("Realizar Empréstimo"):
-    receipt = checkout_book(books, opts[chosen], borrower)
-    save_books(DATA_FILE, books)
-    st.success(f"Emprestado para {receipt['borrower']}!")
-    st.rerun()
-
-out = [b for b in books if not b.get("is_available")]
-ret_opts = {f"#{b['id']}: {b['title']}": b["id"] for b in out}
-ret_chosen = st.selectbox("Devolver Livro:", list(ret_opts.keys()))
-
-if st.button("Confirmar Devolução"):
-    receipt = return_book(books, ret_opts[ret_chosen])
-    save_books(DATA_FILE, books)
-    st.success(f"Devolvido: {receipt['title']}!")
-    st.rerun()
+    # 1. Split into two columns: Checkout (left) and Return (right)
+    # 2. For Checkout:
+    #    - Filter available books: [b for b in books if b.get("is_available", False)]
+    #    - Use st.selectbox to pick a book and st.text_input for borrower name
+    #    - On button click, call backend checkout_book(books, book_id, borrower)
+    #    - Call save_books(DATA_FILE, books) and st.rerun()
+    # 3. For Return:
+    #    - Filter borrowed books: [b for b in books if not b.get("is_available", False)]
+    #    - Use st.selectbox to pick a book
+    #    - On button click, call backend return_book(books, book_id)
+    #    - Call save_books(DATA_FILE, books) and st.rerun()
 
     st.info("👉 Complete TODO 4 in app.py to implement checkout and return workflows.")
